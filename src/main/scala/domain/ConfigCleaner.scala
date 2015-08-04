@@ -18,9 +18,9 @@ object ConfigCleaner {
 
   def generateBindsMap(cfgLines: AbstractSeq[String]) = {
     var bindsMap: SortedMap[String,String] = TreeMap()
-    val result = cfgLines.map(extractBind).filter(_.isDefined)
+    val result = cfgLines.map(extractBind).filter(_ != null)
     result.foreach { element =>
-      bindsMap += (element.get._1 -> element.get._2)
+      bindsMap += (element._1 -> element._2)
     }
     bindsMap
   }
@@ -36,24 +36,27 @@ object ConfigCleaner {
     (aliases.toList, validScriptsMap.toList, bindsMap.toList, nonDefaultCvarsMap.toList, defaultCvars.toList, invalidCvars.toList)
   }
 
-  def validScripts(bindsMap: SortedMap[String, String], invalidCvars: Seq[Option[(String, String)]]): (SortedMap[String,String], Seq[Option[(String,String)]]) = {
+  def validScripts(bindsMap: SortedMap[String, String], invalidCvars: Seq[(String, String)]): (SortedMap[String,String], Seq[(String,String)]) = {
     var validVstr: SortedMap[String,String] = TreeMap()
 
     var updatedInvalidCvars = invalidCvars
     for(bind <- bindsMap.values){
       var scriptNames = findVstr(bind)
       while(scriptNames.nonEmpty){
-        val (result,rest) = updatedInvalidCvars.partition(e => e.get._1.compareTo(scriptNames.head) == 0)
-        validVstr += (result.head.get._1 -> result.head.get._2)
-        updatedInvalidCvars = rest
-        var subVstr = findVstr(result.head.get._2)
-        while(subVstr.nonEmpty){
-          val (subResult,subRest) = updatedInvalidCvars.partition(e => e.get._1.compareTo(subVstr.head) == 0)
-          validVstr += (subResult.head.get._1 -> subResult.head.get._2)
-          updatedInvalidCvars = subRest
-          subVstr = subVstr.tail
-          if(subVstr.isEmpty)
-            subVstr = findVstr(subResult.head.get._2)
+        val (result,rest) = updatedInvalidCvars.partition(e => e._1.compareTo(scriptNames.head) == 0)
+        if(result.nonEmpty) {
+          validVstr += (result.head._1 -> result.head._2)
+          updatedInvalidCvars = rest
+          var subVstr = findVstr(result.head._2)
+          while (subVstr.nonEmpty) {
+            val (subResult, subRest) = updatedInvalidCvars.partition(e => e._1.compareTo(subVstr.head) == 0)
+            if (subResult.nonEmpty)
+              validVstr += (subResult.head._1 -> subResult.head._2)
+            updatedInvalidCvars = subRest
+            subVstr = subVstr.tail
+            if (subVstr.isEmpty && subResult.nonEmpty)
+              subVstr = findVstr(subResult.head._2)
+          }
         }
         scriptNames = scriptNames.tail
       }
@@ -63,25 +66,26 @@ object ConfigCleaner {
 
   
   def extractListOfAlias(listOfCfgLines: AbstractSeq[String]) = {
-    listOfCfgLines.map(extractAlias).filter(_.isDefined).sortBy(_.get._1)
+    listOfCfgLines.map(extractAlias).filter(_ != null).sortBy(_._1)
   }
 
 
-  def nonDefaultCvars(validCvars: Iterable[Option[(String,String)]], defaultCvarMap: SortedMap[String,(String, Boolean)]) = {
-    val (nonDefaultCvars, defaultCvars) = validCvars.partition(cfgCvar => defaultCvarMap.get(cfgCvar.get._1).get._1 != cfgCvar.get._2)
+  def nonDefaultCvars(validCvars: Iterable[(String,String)], defaultCvarMap: SortedMap[String,(String, Boolean)]) = {
+    val (nonDefaultCvars, defaultCvars) = validCvars.partition(cfgCvar =>
+      defaultCvarMap.getOrElse(cfgCvar._1, ("", ""))._1 != cfgCvar._2)
 
     (nonDefaultCvars, defaultCvars)
   }
 
   def validAndInvalidCvars(defaultCvarMap: SortedMap[String, (String, Boolean)], listOfCfgLines: AbstractSeq[String]) = {
-    val listOfCfgCvars = listOfCfgLines.map(extractCvar)
+    val listOfCfgCvars = listOfCfgLines.map(extractCvar).filter(_ != null)
     val result = listOfCfgCvars.partition(cfgCvar =>
-      defaultCvarMap.get(cfgCvar.getOrElse(("",""))._1).isDefined
-        && defaultCvarMap.get(cfgCvar.get._1).get._2
-
+      defaultCvarMap.getOrElse(cfgCvar._1,("","")._1) != null &&
+      defaultCvarMap.getOrElse(cfgCvar._1,("",false))._2
     )
-    val validCvars = result._1.filter(_.isDefined).sortBy(_.get._1)
-    val invalidCvars = result._2.filter(_.isDefined).sortBy(_.get._1)
+
+    val validCvars = result._1.filter(_ != null).sortBy(_._1)
+    val invalidCvars = result._2.filter(_ != null).sortBy(_._1)
 
     (validCvars, invalidCvars)
   }
@@ -94,34 +98,34 @@ object ConfigCleaner {
     (cvarName, defaultValue, !notClient)
   }
 
-  def extractDefaultCvar(cvarString: String) = {
+  def extractDefaultCvar(cvarString: String): (String, String, String) = {
     val defaultRegex = """([SURIALTC ]{8})\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cvarString match{
       case defaultRegex(flags, cvarName, defaultValue) => (flags, cvarName, defaultValue)
     }
   }
 
-  def extractCvar(cfgLine: String) = {
+  def extractCvar(cfgLine: String): (String, String) = {
     val cvarRegex = """(seta|set)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
-      case cvarRegex(_, name, value) => Some((name, value))
-      case default => None
+      case cvarRegex(_, name, value) => (name, value)
+      case default => null
     }
   }
 
-  def extractBind(cfgLine: String) = {
+  def extractBind(cfgLine: String): (String, String) = {
     val bindRegex = """(bind)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
-      case bindRegex(_, key, command) => Some((key, command))
-      case default => None
+      case bindRegex(_, key, command) => (key, command)
+      case default => null
     }
   }
 
-  def extractAlias(cfgLine: String) = {
+  def extractAlias(cfgLine: String): (String, String) = {
     val aliasRegex = """(alias)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
-      case aliasRegex(_, name, value) => Some((name, value))
-      case default => None
+      case aliasRegex(_, name, value) => (name, value)
+      case default => null
     }
   }
 
@@ -136,7 +140,7 @@ object ConfigCleaner {
   def findBindKeysForAction(bindsMap: SortedMap[String,String], action: String): List[String] ={
     var listOfKeysForAction = collection.mutable.MutableList[String]()
     val bindRegex = ("""("""+action+""")\b""").r
-    for(key <- bindsMap.keys){
+    bindsMap.keys.foreach {key =>
       val line = bindsMap(key)
       line match {
         case bindRegex(command) => listOfKeysForAction += key

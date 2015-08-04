@@ -7,17 +7,17 @@ import scala.collection.immutable.SortedMap
 
 class ConfigCleanerTest extends FlatSpec with TableDrivenPropertyChecks{
   val cfgLinesTest = Table(("cfgString","cvar","bind","alias"),
-    ("""seta r_mapOverBrightCap "255"""", Some(("r_mapOverBrightCap","255")),None,None),
-    ("""seta r_bloomIntensity """"", Some(("r_bloomIntensity","")),None,None),
-    ("""bind g "weapon 1;cg_drawcrosshair 2;cg_crosshairsize 33;cg_playerlean 1"""",None,Some(("g","weapon 1;cg_drawcrosshair 2;cg_crosshairsize 33;cg_playerlean 1")),None),
-    ("""seta headmodel "ranger"""", Some(("headmodel","ranger")),None,None),
-    ("""alias clansset "GM_qlfc_clans"""", None,None,Some(("clansset","GM_qlfc_clans"))))
+    ("""seta r_mapOverBrightCap "255"""", ("r_mapOverBrightCap","255"),null,null),
+    ("""seta r_bloomIntensity """"", ("r_bloomIntensity",""),null,null),
+    ("""bind g "weapon 1;cg_drawcrosshair 2;cg_crosshairsize 33;cg_playerlean 1"""",null,("g","weapon 1;cg_drawcrosshair 2;cg_crosshairsize 33;cg_playerlean 1"),null),
+    ("""seta headmodel "ranger"""", ("headmodel","ranger"),null,null),
+    ("""alias clansset "GM_qlfc_clans"""", null,null,("clansset","GM_qlfc_clans")))
 
   forAll(cfgLinesTest) {
     (cfgString: String,
-     cvar: Option[(String,String)],
-     bind: Option[(String,String)],
-     alias: Option[(String,String)] ) =>
+     cvar: (String,String),
+     bind: (String,String),
+     alias: (String,String) ) =>
 
     "extract cvar from" + cfgString should " be " + cvar in {
       assert(ConfigCleaner.extractCvar(cfgString) == cvar)
@@ -77,38 +77,38 @@ class ConfigCleanerTest extends FlatSpec with TableDrivenPropertyChecks{
   )
 
   val expectedOutputListOfDefaultCvars = List(
-    Some("cg_fov", "100")
+    ("cg_fov", "100")
   )
 
   val expectedOutputListOfNondefaultCvars = List(
-    Some("r_vertexLight", "1")
+    ("r_vertexLight", "1")
   )
 
   val expectedOutputListOfAlias = List(
-    Some("clansset","GM_qlfc_clans"),
-    Some("someAlias","doSomething")
+    ("clansset","GM_qlfc_clans"),
+    ("someAlias","doSomething")
   )
 
   val expectedOutputListOfValidCvars = List(
-    Some("cg_fov","100"),
-    Some("r_vertexLight","1")
+    ("cg_fov","100"),
+    ("r_vertexLight","1")
   )
 
   val expectedOutputListOfInvalidCvars = List(
-    Some("ch_graphs","1"),
-    Some("cl_125kz","1"),
-    Some("r_speeds","0"),
-    Some("script1","vstr script2"),
-    Some("script2","vstr script3"),
-    Some("script3","vstr script4;vstr script5"),
-    Some("script4","doSomething"),
-    Some("script5","doSomethingElse")
+    ("ch_graphs","1"),
+    ("cl_125kz","1"),
+    ("r_speeds","0"),
+    ("script1","vstr script2"),
+    ("script2","vstr script3"),
+    ("script3","vstr script4;vstr script5"),
+    ("script4","doSomething"),
+    ("script5","doSomethingElse")
   )
 
   val expectedUpdatedInvalidCvars = List(
-    Some("ch_graphs","1"),
-    Some("cl_125kz","1"),
-    Some("r_speeds","0")
+    ("ch_graphs","1"),
+    ("cl_125kz","1"),
+    ("r_speeds","0")
   )
 
   val expectedOutputMapOfBinds = SortedMap(

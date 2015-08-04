@@ -1,18 +1,24 @@
 import java.io.File
 import domain.ConfigCleaner
 import scala.io.Source
+import java.nio.file.{Paths, Files}
+import java.nio.charset.StandardCharsets
 
 
 object driver{
   var cfg: File = null
 
   def main(args: Array[String]): Unit = {
+    if(args.nonEmpty){
+      cfg = new File(args(0))
+    }
 
     while (cfg == null) {
       cfg = JavaFXFileDialog.chooseFileWithJavaFXDialog()
-      println("//Generated from "+cfg)
     }
-    val cfgLines = Source.fromFile(cfg).getLines.toList
+    var outputText = ""
+    outputText += newline("//Generated from " + cfg)
+    val cfgLines = Source.fromFile(cfg).getLines().toList
     val rawResult = ConfigCleaner.generateOutputLists(cfgLines)
     val aliases = rawResult._1
     val validScripts = rawResult._2
@@ -22,47 +28,45 @@ object driver{
 
 
     if(aliases.nonEmpty) {
-      println("//Aliases")
+      outputText += newline("//Aliases")
       aliases.foreach { alias =>
-        print("alias " + alias.get._1)
-        println(" \"" + alias.get._2 + "\"")
+        outputText += newline("alias " + alias._1 + " \"" + alias._2 + "\"")
       }
     }
 
     if(validScripts.nonEmpty) {
-      println("//Scripts in use")
+      outputText += newline("//Scripts in use")
       validScripts.foreach { script =>
-        print("set " + script._1)
-        println(" \"" + script._2 + "\"")
+        outputText += newline("set " + script._1 + " \"" + script._2 + "\"")
       }
     }
 
     if(binds.nonEmpty) {
-      println("//Binds")
+      outputText += newline("//Binds")
       binds.foreach { bind =>
-        print("bind " + bind._1)
-        println(" \"" + bind._2 + "\"")
+        outputText += newline("bind " + bind._1 + " \"" + bind._2 + "\"")
       }
     }
 
     if(modifiedCvars.nonEmpty) {
-      println("//Modified Cvars")
+      outputText += newline("//Modified Cvars")
       modifiedCvars.foreach { cvar =>
-        print("seta " + cvar.get._1)
-        println(" \"" + cvar.get._2 + "\"")
+        outputText += newline("seta " + cvar._1 + " \"" + cvar._2 + "\"")
       }
     }
 
     if(defaultCvars.nonEmpty) {
-      println("//Default Cvars")
+      outputText += newline("//Default Cvars")
       defaultCvars.foreach { defaultCvar =>
-        print("seta " + defaultCvar.get._1)
-        println(" \"" + defaultCvar.get._2 + "\"")
+        outputText += newline("seta " + defaultCvar._1 + " \"" + defaultCvar._2 + "\"")
       }
     }
+
+
+    Files.write(Paths.get("./"+cfg.getName+"-clean.cfg"), outputText.getBytes(StandardCharsets.UTF_8))
     sys.exit()
   }
 
-
+def newline(text: String) = text + "\n"
 
 }
