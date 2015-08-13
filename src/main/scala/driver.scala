@@ -66,8 +66,8 @@ object driver{
 
     if(invalidCvars.nonEmpty){
       outputText += newline("//Invalid Cvars")
-      defaultCvars.foreach { invalidCvar =>
-        outputText += newline("//seta" + invalidCvar._1 + " \"" + invalidCvar._2 + "\"")
+      invalidCvars.foreach { invalidCvar =>
+        outputText += newline("//seta " + invalidCvar._1 + " \"" + invalidCvar._2 + "\"")
       }
     }
 
