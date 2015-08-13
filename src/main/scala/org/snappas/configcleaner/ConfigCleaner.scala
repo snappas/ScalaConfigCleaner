@@ -1,4 +1,4 @@
-package domain
+package org.snappas.configcleaner
 
 import scala.collection.AbstractSeq
 import scala.collection.immutable.{SortedMap, TreeMap}
@@ -9,7 +9,7 @@ object ConfigCleaner {
   def generateDefaultCvarsMap = {
     var defaultCvarMap: SortedMap[String, (String, Boolean)] = TreeMap()
     val collectionOfDefaultCvarsLines: Iterator[String] = Source.fromURL(getClass.getResource("/cvars.txt")).getLines()
-    val result = collectionOfDefaultCvarsLines.map(defaultClientCvars)
+    val result = collectionOfDefaultCvarsLines.map(ConfigRegex.defaultClientCvars)
     result.foreach { element =>
       defaultCvarMap += (element._1 -> (element._2, element._3))
     }
@@ -18,7 +18,7 @@ object ConfigCleaner {
 
   def generateBindsMap(cfgLines: AbstractSeq[String]) = {
     var bindsMap: SortedMap[String,String] = TreeMap()
-    val result = cfgLines.map(extractBind).filter(_ != null)
+    val result = cfgLines.map(ConfigRegex.extractBind).filter(_ != null)
     result.foreach { element =>
       bindsMap += (element._1 -> element._2)
     }
@@ -41,13 +41,13 @@ object ConfigCleaner {
 
     var updatedInvalidCvars = invalidCvars
     for(bind <- bindsMap.values){
-      var scriptNames = findVstr(bind)
+      var scriptNames = ConfigRegex.findVstr(bind)
       while(scriptNames.nonEmpty){
         val (result,rest) = updatedInvalidCvars.partition(e => e._1.compareTo(scriptNames.head) == 0)
         if(result.nonEmpty) {
           validVstr += (result.head._1 -> result.head._2)
           updatedInvalidCvars = rest
-          var subVstr = findVstr(result.head._2)
+          var subVstr = ConfigRegex.findVstr(result.head._2)
           while (subVstr.nonEmpty) {
             val (subResult, subRest) = updatedInvalidCvars.partition(e => e._1.compareTo(subVstr.head) == 0)
             if (subResult.nonEmpty)
@@ -55,7 +55,7 @@ object ConfigCleaner {
             updatedInvalidCvars = subRest
             subVstr = subVstr.tail
             if (subVstr.isEmpty && subResult.nonEmpty)
-              subVstr = findVstr(subResult.head._2)
+              subVstr = ConfigRegex.findVstr(subResult.head._2)
           }
         }
         scriptNames = scriptNames.tail
@@ -66,7 +66,7 @@ object ConfigCleaner {
 
   
   def extractListOfAlias(listOfCfgLines: AbstractSeq[String]) = {
-    listOfCfgLines.map(extractAlias).filter(_ != null).sortBy(_._1)
+    listOfCfgLines.map(ConfigRegex.extractAlias).filter(_ != null).sortBy(_._1)
   }
 
 
@@ -78,7 +78,7 @@ object ConfigCleaner {
   }
 
   def validAndInvalidCvars(defaultCvarMap: SortedMap[String, (String, Boolean)], listOfCfgLines: AbstractSeq[String]) = {
-    val listOfCfgCvars = listOfCfgLines.map(extractCvar).filter(_ != null)
+    val listOfCfgCvars = listOfCfgLines.map(ConfigRegex.extractCvar).filter(_ != null)
     val result = listOfCfgCvars.partition(cfgCvar =>
       defaultCvarMap.getOrElse(cfgCvar._1,("","")._1) != null &&
       defaultCvarMap.getOrElse(cfgCvar._1,("",false))._2
@@ -91,64 +91,6 @@ object ConfigCleaner {
   }
 
 
-  def defaultClientCvars(cvarString: String): (String, String, Boolean) = {
-    val (flags, cvarName, defaultValue) = extractDefaultCvar(cvarString)
-    val notClient = flags(0) == 'S' || flags(2) == 'R' || flags(3) == 'I' || flags(6) == 'C'
-
-    (cvarName, defaultValue, !notClient)
-  }
-
-  def extractDefaultCvar(cvarString: String): (String, String, String) = {
-    val defaultRegex = """([SURIALTC ]{8})\s([A-z|0-9]+[_]?)\s"(.*)"""".r
-    cvarString match{
-      case defaultRegex(flags, cvarName, defaultValue) => (flags, cvarName, defaultValue)
-    }
-  }
-
-  def extractCvar(cfgLine: String): (String, String) = {
-    val cvarRegex = """(seta|set)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
-    cfgLine match {
-      case cvarRegex(_, name, value) => (name, value)
-      case default => null
-    }
-  }
-
-  def extractBind(cfgLine: String): (String, String) = {
-    val bindRegex = """(bind)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
-    cfgLine match {
-      case bindRegex(_, key, command) => (key, command)
-      case default => null
-    }
-  }
-
-  def extractAlias(cfgLine: String): (String, String) = {
-    val aliasRegex = """(alias)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
-    cfgLine match {
-      case aliasRegex(_, name, value) => (name, value)
-      case default => null
-    }
-  }
-
-  def findVstr(line: String) = {
-    val vstrRegex = """vstr\s([A-z|0-9|_]+)""".r
-
-    vstrRegex.findAllMatchIn(line).map{
-      case vstrRegex(name) => name
-    }.toList
-  }
-
-  def findBindKeysForAction(bindsMap: SortedMap[String,String], action: String): List[String] ={
-    var listOfKeysForAction = collection.mutable.MutableList[String]()
-    val bindRegex = ("""("""+action+""")\b""").r
-    bindsMap.keys.foreach {key =>
-      val line = bindsMap(key)
-      line match {
-        case bindRegex(command) => listOfKeysForAction += key
-        case default =>
-      }
-    }
-    listOfKeysForAction.toList
-  }
 
 
 
