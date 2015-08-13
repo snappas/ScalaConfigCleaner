@@ -1,5 +1,6 @@
 import java.io.File
-import domain.ConfigCleaner
+import org.snappas.configcleaner.ConfigCleaner
+
 import scala.io.Source
 import java.nio.file.{Paths, Files}
 import java.nio.charset.StandardCharsets
@@ -17,7 +18,7 @@ object driver{
       cfg = JavaFXFileDialog.chooseFileWithJavaFXDialog()
     }
     var outputText = ""
-    outputText += newline("//Generated from " + cfg)
+    outputText += newline("//Generated from " + cfg.getName)
     val cfgLines = Source.fromFile(cfg).getLines().toList
     val rawResult = ConfigCleaner.generateOutputLists(cfgLines)
     val aliases = rawResult._1
@@ -25,6 +26,7 @@ object driver{
     val binds = rawResult._3
     val modifiedCvars = rawResult._4
     val defaultCvars = rawResult._5
+    val invalidCvars = rawResult._6
 
 
     if(aliases.nonEmpty) {
@@ -59,6 +61,13 @@ object driver{
       outputText += newline("//Default Cvars")
       defaultCvars.foreach { defaultCvar =>
         outputText += newline("seta " + defaultCvar._1 + " \"" + defaultCvar._2 + "\"")
+      }
+    }
+
+    if(invalidCvars.nonEmpty){
+      outputText += newline("//Invalid Cvars")
+      defaultCvars.foreach { invalidCvar =>
+        outputText += newline("//seta" + invalidCvar._1 + " \"" + invalidCvar._2 + "\"")
       }
     }
 
