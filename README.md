@@ -5,6 +5,10 @@
 - Detects cvars modified from default value
 - Prevents invalid cvars and unused scripts from being loaded into the Quake command processor
 
+##### Example output: 
+- [Cypher's config from QC2015 original]
+- [Cypher's config from QC2015 cleaned]
+
 #### Requires
 - Java runtime > 1.8.0_40 - Download [latest Java]
 - Simple Build Tool - Download [SBT]
@@ -18,11 +22,7 @@
 5. Type `sbt assembly` to generate the .jar file in `target\scala-2.11`
 6. Run the .jar file to start the application
 
-Example output:
 
-[Cypher's config from QC2015 original]
-
-[Cypher's config from QC2015 cleaned]
 
 [latest Java]: https://java.com/en/download/
 [SBT]: http://www.scala-sbt.org/
