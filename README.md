@@ -1,9 +1,9 @@
 ##Quake Config Cleaner
 
-Features: 
-Detects scripts in use
-Detects cvars modified from default value
-Removes invalid/deprecated cvars and unused scripts
+#### Features: 
+- Detects scripts in use (any script with a reference to a bind)
+- Detects cvars modified from default value
+- Removes invalid/deprecated cvars and unused scripts
 
 #### Requires
 - Java runtime > 1.8.0_40 - Download [latest Java]
@@ -14,7 +14,7 @@ Removes invalid/deprecated cvars and unused scripts
 2. Download the [zip of this repository]
 3. Extract zip some place
 4. Open command prompt in the extracted directory containing build.sbt
-* (Hint: Shift + Right Click on the folder extracted on Windows and choose Open command window here)
+ * (Hint: Shift + Right Click on the folder extracted on Windows and choose Open command window here)
 5. Type `sbt assembly` to generate the .jar file in `target\scala-2.11`
 6. Run the .jar file to start the application
 
