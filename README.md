@@ -3,7 +3,7 @@
 #### Features: 
 - Detects scripts in use (any script with a reference to a bind)
 - Detects cvars modified from default value
-- Removes invalid/deprecated cvars and unused scripts
+- Prevents invalid/deprecated cvars and unused scripts from being loaded into the Quake command processor
 
 #### Requires
 - Java runtime > 1.8.0_40 - Download [latest Java]
