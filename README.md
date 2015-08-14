@@ -1,5 +1,10 @@
 ##Quake Config Cleaner
 
+Features: 
+Detects scripts in use
+Detects cvars modified from default value
+Removes invalid/deprecated cvars and unused scripts
+
 #### Requires
 - Java runtime > 1.8.0_40 - Download [latest Java]
 - Simple Build Tool - Download [SBT]
