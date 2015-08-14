@@ -13,6 +13,12 @@
 5. Type `sbt assembly` to generate the .jar file in `target\scala-2.11`
 6. Run the .jar file to start the application
 
+Example output:
+[Cypher's config from QC2015 original]
+[Cypher's config from QC2015 cleaned]
+
 [latest Java]: https://java.com/en/download/
 [SBT]: http://www.scala-sbt.org/
 [zip of this repository]: https://github.com/snappas/ScalaConfigCleaner/archive/master.zip
+[Cypher's config from QC2015 original]: http://pastebin.com/Yzd4p3SS
+[Cypher's config from QC2015 cleaned]: http://pastebin.com/iGC6Q3Sm
