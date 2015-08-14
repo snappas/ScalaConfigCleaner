@@ -14,7 +14,9 @@
 6. Run the .jar file to start the application
 
 Example output:
+
 [Cypher's config from QC2015 original]
+
 [Cypher's config from QC2015 cleaned]
 
 [latest Java]: https://java.com/en/download/
