@@ -19,10 +19,13 @@
 3. Extract zip some place
 4. Open command prompt in the extracted directory containing build.sbt
  * (Hint: Shift + Right Click on the folder extracted on Windows and choose Open command window here)
-5. Type `sbt assembly` to generate the .jar file in `target\scala-2.11`
+5. Type `sbt assembly` to generate the .jar application in `target\scala-2.11`
 6. Run the .jar file to start the application
 
-
+### Usage: 
+1. Double click on the assembled .jar
+2. Browse to a Quake .cfg file
+3. A cleaned .cfg file will be generated in the same directory as the .jar
 
 [latest Java]: https://java.com/en/download/
 [SBT]: http://www.scala-sbt.org/
