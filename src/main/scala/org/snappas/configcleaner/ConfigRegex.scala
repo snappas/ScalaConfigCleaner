@@ -1,14 +1,15 @@
 package org.snappas.configcleaner
 
 object ConfigRegex {
-  def extractDefaultCvar(cvarString: String): (String, String, String) = {
+  def extractDefaultCvarFromLine(cvarString: String): (String, String, String) = {
     val defaultRegex = """([SURIALTC ]{8})\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cvarString match{
-      case defaultRegex(flags, cvarName, defaultValue) => (flags, cvarName, defaultValue)
+      case defaultRegex(flags, cvarName, defaultValue) => (cvarName, defaultValue, flags)
+      case default => null
     }
   }
 
-  def extractCvar(cfgLine: String): (String, String) = {
+  def extractCvarFromCfgLine(cfgLine: String): (String, String) = {
     val cvarRegex = """(seta|set)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
       case cvarRegex(_, name, value) => (name, value)
@@ -16,7 +17,7 @@ object ConfigRegex {
     }
   }
 
-  def extractBind(cfgLine: String): (String, String) = {
+  def extractBindFromCfgLine(cfgLine: String): (String, String) = {
     val bindRegex = """(bind)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
       case bindRegex(_, key, command) => (key, command)
@@ -24,7 +25,7 @@ object ConfigRegex {
     }
   }
 
-  def extractAlias(cfgLine: String): (String, String) = {
+  def extractAliasFromCfgLine(cfgLine: String): (String, String) = {
     val aliasRegex = """(alias)\s([A-z|0-9]+[_]?)\s"(.*)"""".r
     cfgLine match {
       case aliasRegex(_, name, value) => (name, value)
@@ -32,7 +33,7 @@ object ConfigRegex {
     }
   }
 
-  def findVstr(line: String) = {
+  def findAllVstrNamesInALine(line: String) = {
     val vstrRegex = """vstr\s([A-z|0-9|_]+)""".r
 
     vstrRegex.findAllMatchIn(line).map{
@@ -40,11 +41,8 @@ object ConfigRegex {
     }.toList
   }
 
-  def defaultClientCvars(cvarString: String): (String, String, Boolean) = {
-    val (flags, cvarName, defaultValue) = extractDefaultCvar(cvarString)
-    val notClient = flags(0) == 'S' || flags(2) == 'R' || flags(3) == 'I' || flags(6) == 'C'
-
-    (cvarName, defaultValue, !notClient)
+  def isClientCvar(flags: String) = {
+    !(flags(0) == 'S' || flags(2) == 'R' || flags(3) == 'I' || flags(6) == 'C')
   }
 
 }

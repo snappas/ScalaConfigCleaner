@@ -18,15 +18,15 @@ class ConfigRegexTest extends FlatSpec with TableDrivenPropertyChecks{
      alias: (String,String) ) =>
 
       "extract cvar from" + cfgString should " be " + cvar in {
-        assert(ConfigRegex.extractCvar(cfgString) == cvar)
+        assert(ConfigRegex.extractCvarFromCfgLine(cfgString) == cvar)
       }
 
       "extract bind from " + cfgString should " be " + bind in {
-        assert(ConfigRegex.extractBind(cfgString) == bind)
+        assert(ConfigRegex.extractBindFromCfgLine(cfgString) == bind)
       }
 
       "extract alias from " + cfgString should " be " + alias in {
-        assert(ConfigRegex.extractAlias(cfgString) == alias)
+        assert(ConfigRegex.extractAliasFromCfgLine(cfgString) == alias)
       }
 
   }
@@ -46,17 +46,17 @@ class ConfigRegexTest extends FlatSpec with TableDrivenPropertyChecks{
      defaultValue: String,
      isClientCvar: Boolean ) =>
 
-      "check if " + cvarString + "has expected flags" should " be " + cvarFlags in {
-        assert(ConfigRegex.extractDefaultCvar(cvarString)._1 == cvarFlags)
+      "check if " + cvarString + " has expected flags" should " be " + cvarFlags in {
+        assert(ConfigRegex.extractDefaultCvarFromLine(cvarString)._3 == cvarFlags)
       }
 
       "extract client cvars by flags " + cvarName should " be " + isClientCvar in {
-        assert(ConfigRegex.defaultClientCvars(cvarString) == (cvarName, defaultValue, isClientCvar))
+        assert(ConfigRegex.isClientCvar(cvarFlags) == isClientCvar)
       }
 
   }
 
-  "given a cfg line, find script names in it" should "produce list of script names" in {
-    assert(ConfigRegex.findVstr("""set script3 "vstr script4;vstr script5"""") == List("script4","script5"))
+  "given a cfg line, find script names in it" should " produce list of script names" in {
+    assert(ConfigRegex.findAllVstrNamesInALine( """set script3 "vstr script4;vstr script5"""") == List("script4", "script5"))
   }
 }

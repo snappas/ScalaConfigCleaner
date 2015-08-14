@@ -1,97 +1,58 @@
 package org.snappas.configcleaner
 
-import scala.collection.AbstractSeq
-import scala.collection.immutable.{SortedMap, TreeMap}
-import scala.io.Source
+import scala.collection.mutable
 
 object ConfigCleaner {
 
-  def generateDefaultCvarsMap = {
-    var defaultCvarMap: SortedMap[String, (String, Boolean)] = TreeMap()
-    val collectionOfDefaultCvarsLines: Iterator[String] = Source.fromURL(getClass.getResource("/cvars.txt")).getLines()
-    val result = collectionOfDefaultCvarsLines.map(ConfigRegex.defaultClientCvars)
-    result.foreach { element =>
-      defaultCvarMap += (element._1 -> (element._2, element._3))
-    }
-    defaultCvarMap
+  def validCvars(cvarMap: Map[String, String], defaultCvarsMap: Map[String, (String, String)]) = {
+    cvarMap.map { case (k, v) =>
+      if (defaultCvarsMap.get(k).isDefined)
+        (k, new Command("cvar", k, v, defaultCvarsMap.get(k).get._1))
+      else
+        (null, null)
+    }.filter(_._1 != null)
   }
 
-  def generateBindsMap(cfgLines: AbstractSeq[String]) = {
-    var bindsMap: SortedMap[String,String] = TreeMap()
-    val result = cfgLines.map(ConfigRegex.extractBind).filter(_ != null)
-    result.foreach { element =>
-      bindsMap += (element._1 -> element._2)
-    }
-    bindsMap
+  def invalidCvars(cvarMap: Map[String, String], defaultCvarsMap: Map[String, (String, String)]) = {
+    cvarMap.map { case (k, v) =>
+      if (defaultCvarsMap.get(k).isEmpty)
+        (k, new Command("cvar", k, v, ""))
+      else
+        (null, null)
+    }.filter(_._1 != null)
   }
 
-  def generateOutputLists(cfg: List[String])= {
-    val defaultCvarsMap = generateDefaultCvarsMap
-    val (validCvars,cvarsNotFound) = validAndInvalidCvars(defaultCvarsMap,cfg)
-    val bindsMap = generateBindsMap(cfg)
-    val (validScriptsMap,invalidCvars) = validScripts(bindsMap,cvarsNotFound)
-    val aliases = extractListOfAlias(cfg)
-    val (nonDefaultCvarsMap, defaultCvars) = nonDefaultCvars(validCvars, defaultCvarsMap)
+  def validScripts(bindCommands: Map[String, Command], invalidCmds: Map[String, Command]) = {
+    val scriptQueue = mutable.Queue[String]()
+    var validScriptCommands: Map[String, Command] = Map()
+    var invalidCommands = invalidCmds
 
-    (aliases.toList, validScriptsMap.toList, bindsMap.toList, nonDefaultCvarsMap.toList, defaultCvars.toList, invalidCvars.toList)
-  }
-
-  def validScripts(bindsMap: SortedMap[String, String], invalidCvars: Seq[(String, String)]): (SortedMap[String,String], Seq[(String,String)]) = {
-    var validVstr: SortedMap[String,String] = TreeMap()
-
-    var updatedInvalidCvars = invalidCvars
-    for(bind <- bindsMap.values){
-      var scriptNames = ConfigRegex.findVstr(bind)
-      while(scriptNames.nonEmpty){
-        val (result,rest) = updatedInvalidCvars.partition(e => e._1.compareTo(scriptNames.head) == 0)
-        if(result.nonEmpty) {
-          validVstr += (result.head._1 -> result.head._2)
-          updatedInvalidCvars = rest
-          var subVstr = ConfigRegex.findVstr(result.head._2)
-          while (subVstr.nonEmpty) {
-            val (subResult, subRest) = updatedInvalidCvars.partition(e => e._1.compareTo(subVstr.head) == 0)
-            if (subResult.nonEmpty)
-              validVstr += (subResult.head._1 -> subResult.head._2)
-            updatedInvalidCvars = subRest
-            subVstr = subVstr.tail
-            if (subVstr.isEmpty && subResult.nonEmpty)
-              subVstr = ConfigRegex.findVstr(subResult.head._2)
-          }
-        }
-        scriptNames = scriptNames.tail
+    bindCommands.values.foreach { bind =>
+      ConfigRegex.findAllVstrNamesInALine(bind.value).foreach { vstr =>
+        scriptQueue.enqueue(vstr)
       }
     }
-    (validVstr,updatedInvalidCvars)
+
+    while (scriptQueue.nonEmpty) {
+      val scriptName = scriptQueue.dequeue()
+      if (invalidCommands.get(scriptName).isDefined) {
+        val command = invalidCommands.get(scriptName).get
+        validScriptCommands += (command.name -> command)
+        invalidCommands = invalidCommands - scriptName
+        ConfigRegex.findAllVstrNamesInALine(command.value).foreach { vstr =>
+          scriptQueue.enqueue(vstr)
+        }
+      }
+    }
+    (validScriptCommands, invalidCommands)
   }
 
-  
-  def extractListOfAlias(listOfCfgLines: AbstractSeq[String]) = {
-    listOfCfgLines.map(ConfigRegex.extractAlias).filter(_ != null).sortBy(_._1)
+  def defaultNondefaultCvars(validCvars: Map[String, Command]) = {
+    validCvars.partition(e => e._2.value == e._2.defaultValue)
   }
 
-
-  def nonDefaultCvars(validCvars: Iterable[(String,String)], defaultCvarMap: SortedMap[String,(String, Boolean)]) = {
-    val (nonDefaultCvars, defaultCvars) = validCvars.partition(cfgCvar =>
-      defaultCvarMap.getOrElse(cfgCvar._1, ("", ""))._1 != cfgCvar._2)
-
-    (nonDefaultCvars, defaultCvars)
+  def clientCvars(validCvars: Map[String, Command], defaultCvars: Map[String, (String, String)]) = {
+    validCvars.filter(e => ConfigRegex.isClientCvar(defaultCvars(e._1)._2))
   }
-
-  def validAndInvalidCvars(defaultCvarMap: SortedMap[String, (String, Boolean)], listOfCfgLines: AbstractSeq[String]) = {
-    val listOfCfgCvars = listOfCfgLines.map(ConfigRegex.extractCvar).filter(_ != null)
-    val result = listOfCfgCvars.partition(cfgCvar =>
-      defaultCvarMap.getOrElse(cfgCvar._1,("","")._1) != null &&
-      defaultCvarMap.getOrElse(cfgCvar._1,("",false))._2
-    )
-
-    val validCvars = result._1.filter(_ != null).sortBy(_._1)
-    val invalidCvars = result._2.filter(_ != null).sortBy(_._1)
-
-    (validCvars, invalidCvars)
-  }
-
-
-
-
 
 }

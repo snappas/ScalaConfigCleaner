@@ -1,81 +1,94 @@
 import java.io.File
-import org.snappas.configcleaner.ConfigCleaner
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
+
+import org.snappas.configcleaner.{Config, ConfigCleaner}
 
 import scala.io.Source
-import java.nio.file.{Paths, Files}
-import java.nio.charset.StandardCharsets
 
 
 object driver{
   var cfg: File = null
 
   def main(args: Array[String]): Unit = {
-    if(args.nonEmpty){
+    if (args.nonEmpty) {
       cfg = new File(args(0))
     }
 
-    while (cfg == null) {
-      cfg = JavaFXFileDialog.chooseFileWithJavaFXDialog()
-    }
+    cfg = JavaFXFileDialog.chooseFileWithJavaFXDialog()
+    if (cfg == null)
+      sys.exit(1)
+
     var outputText = ""
     outputText += newline("//Generated from " + cfg.getName)
-    val cfgLines = Source.fromFile(cfg).getLines().toList
-    val rawResult = ConfigCleaner.generateOutputLists(cfgLines)
-    val aliases = rawResult._1
-    val validScripts = rawResult._2
-    val binds = rawResult._3
-    val modifiedCvars = rawResult._4
-    val defaultCvars = rawResult._5
-    val invalidCvars = rawResult._6
+    val cfgLines = Source.fromFile(cfg).getLines()
 
-
-    if(aliases.nonEmpty) {
-      outputText += newline("//Aliases")
-      aliases.foreach { alias =>
-        outputText += newline("alias " + alias._1 + " \"" + alias._2 + "\"")
-      }
-    }
-
-    if(validScripts.nonEmpty) {
-      outputText += newline("//Scripts in use")
-      validScripts.foreach { script =>
-        outputText += newline("set " + script._1 + " \"" + script._2 + "\"")
-      }
-    }
-
-    if(binds.nonEmpty) {
-      outputText += newline("//Binds")
-      binds.foreach { bind =>
-        outputText += newline("bind " + bind._1 + " \"" + bind._2 + "\"")
-      }
-    }
-
-    if(modifiedCvars.nonEmpty) {
-      outputText += newline("//Modified Cvars")
-      modifiedCvars.foreach { cvar =>
-        outputText += newline("seta " + cvar._1 + " \"" + cvar._2 + "\"")
-      }
-    }
-
-    if(defaultCvars.nonEmpty) {
-      outputText += newline("//Default Cvars")
-      defaultCvars.foreach { defaultCvar =>
-        outputText += newline("seta " + defaultCvar._1 + " \"" + defaultCvar._2 + "\"")
-      }
-    }
-
-    if(invalidCvars.nonEmpty){
-      outputText += newline("//Invalid Cvars")
-      invalidCvars.foreach { invalidCvar =>
-        outputText += newline("//seta " + invalidCvar._1 + " \"" + invalidCvar._2 + "\"")
-      }
-    }
-
+    outputText += generateOutput(cfgLines)
 
     Files.write(Paths.get("./"+cfg.getName+"-clean.cfg"), outputText.getBytes(StandardCharsets.UTF_8))
     sys.exit()
+
   }
 
-def newline(text: String) = text + "\n"
+  def generateOutput(cfg: Iterator[String]): String = {
+    val defaultCvars = Source.fromURL(getClass.getResource("/cvars.txt")).getLines()
+    val config = new Config(cfg, defaultCvars)
+    var output = ""
+
+    val aliases = config.aliasCommands
+    val binds = config.bindCommands
+    val invalidCommands = ConfigCleaner.invalidCvars(config.cvarMap, config.defaultCvarsMap)
+    val validCvars = ConfigCleaner.validCvars(config.cvarMap, config.defaultCvarsMap)
+    val clientCvars = ConfigCleaner.clientCvars(validCvars, config.defaultCvarsMap)
+    val (scripts, invalidCvars) = ConfigCleaner.validScripts(binds, invalidCommands)
+    val (defaultCommands, modifiedCommands) = ConfigCleaner.defaultNondefaultCvars(clientCvars)
+
+
+    if (binds.nonEmpty)
+      output += newline("\n//Binds")
+    binds.toSeq.map(_._2).sortBy(_.name).foreach {
+      bind =>
+        output += newline("bind " + bind.name + " \"" + bind.value + "\"")
+    }
+
+    if (aliases.nonEmpty)
+      output += newline("\n//Aliases")
+    aliases.toSeq.map(_._2).sortBy(_.name).foreach {
+      alias =>
+        output += newline("alias " + alias.name + " \"" + alias.value + "\"")
+    }
+
+    if (scripts.nonEmpty)
+      output += newline("\n//Scripts in use")
+    scripts.toSeq.map(_._2).sortBy(_.name).foreach {
+      script =>
+        output += newline("set " + script.name + " \"" + script.value + "\"")
+    }
+
+    if (modifiedCommands.nonEmpty)
+      output += newline("\n//Modified commands")
+    modifiedCommands.toSeq.map(_._2).sortBy(_.name).foreach {
+      command =>
+        output += newline("seta " + command.name + " \"" + command.value + "\"" + " //Default: \"" + command.defaultValue + "\"")
+    }
+
+    if (defaultCommands.nonEmpty)
+      output += newline("\n//Default commands")
+    defaultCommands.toSeq.map(_._2).sortBy(_.name).foreach {
+      command =>
+        output += newline("seta " + command.name + " \"" + command.value + "\"")
+    }
+
+    if (invalidCvars.nonEmpty)
+      output += newline("\n//Invalid commands/unused scripts")
+    invalidCvars.toSeq.map(_._2).sortBy(_.name).foreach {
+      invalid =>
+        output += newline("//seta " + invalid.name + " \"" + invalid.value + "\"")
+    }
+
+    output
+  }
+
+  def newline(text: String) = text + "\n"
 
 }
