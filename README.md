@@ -9,11 +9,11 @@
 - [Cypher's config from QC2015 original]
 - [Cypher's config from QC2015 cleaned]
 
-#### Requires
+### Requires:
 - Java runtime > 1.8.0_40 - Download [latest Java]
 - Simple Build Tool - Download [SBT]
 
-### Installation
+### Installation:
 1. Install [SBT]
 2. Download the [zip of this repository]
 3. Extract zip some place
