@@ -61,7 +61,7 @@ object driver{
 
     if (modifiedCommands.nonEmpty) {
       output += "\n//Modified commands\n"
-      output += addCollectionToOutput(modifiedCommands, "seta")
+      output += addCollectionToOutputWithDefault(modifiedCommands, "seta")
     }
 
     if (defaultCommands.nonEmpty) {
@@ -83,6 +83,16 @@ object driver{
     collection.toSeq.map(_._2).sortBy(_.name).foreach {
       command =>
         output += prefix + " " + command.name + " \"" + command.value + "\"\n"
+    }
+    output
+  }
+
+  def addCollectionToOutputWithDefault(collection: Map[String, Command], prefix: String) = {
+    var output = ""
+    collection.toSeq.map(_._2).sortBy(_.name).foreach {
+      command =>
+        output += prefix + " " + command.name + " \"" + command.value + "\"" +
+          " //Default: \"" + command.defaultValue + "\"\n"
     }
     output
   }
