@@ -2,7 +2,7 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import org.snappas.configcleaner.{Config, ConfigCleaner}
+import org.snappas.configcleaner.{Command, Config, ConfigCleaner}
 
 import scala.io.Source
 
@@ -20,7 +20,7 @@ object driver{
       sys.exit(1)
 
     var outputText = ""
-    outputText += newline("//Generated from " + cfg.getName)
+    outputText += "//Generated from " + cfg.getName + "\n"
     val cfgLines = Source.fromFile(cfg).getLines()
 
     outputText += generateOutput(cfgLines)
@@ -44,51 +44,47 @@ object driver{
     val (defaultCommands, modifiedCommands) = ConfigCleaner.defaultNondefaultCvars(clientCvars)
 
 
-    if (binds.nonEmpty)
-      output += newline("\n//Binds")
-    binds.toSeq.map(_._2).sortBy(_.name).foreach {
-      bind =>
-        output += newline("bind " + bind.name + " \"" + bind.value + "\"")
+    if (binds.nonEmpty) {
+      output += "\n//Binds\n"
+      output += addCollectionToOutput(binds, "bind")
     }
 
-    if (aliases.nonEmpty)
-      output += newline("\n//Aliases")
-    aliases.toSeq.map(_._2).sortBy(_.name).foreach {
-      alias =>
-        output += newline("alias " + alias.name + " \"" + alias.value + "\"")
+    if (aliases.nonEmpty) {
+      output += "\n//Aliases\n"
+      output += addCollectionToOutput(aliases, "alias")
     }
 
-    if (scripts.nonEmpty)
-      output += newline("\n//Scripts in use")
-    scripts.toSeq.map(_._2).sortBy(_.name).foreach {
-      script =>
-        output += newline("set " + script.name + " \"" + script.value + "\"")
+    if (scripts.nonEmpty) {
+      output += "\n//Scripts in use\n"
+      output += addCollectionToOutput(scripts, "set")
     }
 
-    if (modifiedCommands.nonEmpty)
-      output += newline("\n//Modified commands")
-    modifiedCommands.toSeq.map(_._2).sortBy(_.name).foreach {
-      command =>
-        output += newline("seta " + command.name + " \"" + command.value + "\"" + " //Default: \"" + command.defaultValue + "\"")
+    if (modifiedCommands.nonEmpty) {
+      output += "\n//Modified commands\n"
+      output += addCollectionToOutput(modifiedCommands, "seta")
     }
 
-    if (defaultCommands.nonEmpty)
-      output += newline("\n//Default commands")
-    defaultCommands.toSeq.map(_._2).sortBy(_.name).foreach {
-      command =>
-        output += newline("seta " + command.name + " \"" + command.value + "\"")
+    if (defaultCommands.nonEmpty) {
+      output += "\n//Default commands\n"
+      output += addCollectionToOutput(defaultCommands, "seta")
     }
 
-    if (invalidCvars.nonEmpty)
-      output += newline("\n//Invalid commands/unused scripts")
-    invalidCvars.toSeq.map(_._2).sortBy(_.name).foreach {
-      invalid =>
-        output += newline("//seta " + invalid.name + " \"" + invalid.value + "\"")
+    if (invalidCvars.nonEmpty) {
+      output += "\n//Invalid commands/unused scripts\n"
+      output += addCollectionToOutput(invalidCvars, "//seta")
     }
 
     output
   }
 
-  def newline(text: String) = text + "\n"
+
+  def addCollectionToOutput(collection: Map[String, Command], prefix: String) = {
+    var output = ""
+    collection.toSeq.map(_._2).sortBy(_.name).foreach {
+      command =>
+        output += prefix + " " + command.name + " \"" + command.value + "\"\n"
+    }
+    output
+  }
 
 }
