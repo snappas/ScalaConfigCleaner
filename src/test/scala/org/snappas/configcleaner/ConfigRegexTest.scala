@@ -57,6 +57,7 @@ class ConfigRegexTest extends FlatSpec with TableDrivenPropertyChecks{
   }
 
   "given a cfg line, find script names in it" should " produce list of script names" in {
-    assert(ConfigRegex.findAllVstrNamesInALine( """set script3 "vstr script4;vstr script5"""") == List("script4", "script5"))
+    assert(ConfigRegex.findAllVstrNamesInALine( """set script3 "vstr script4;vstr script5"""")
+      == List("script4", "script5"))
   }
 }
