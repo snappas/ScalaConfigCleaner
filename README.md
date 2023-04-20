@@ -1,3 +1,5 @@
+####Obsolete -- Feel free to update to the latest libraries and runtime, or port to another language. 
+
 ##Quake Config Cleaner
 
 #### Features: 
